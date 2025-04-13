@@ -2,6 +2,8 @@ const express = require("express");
 const { PrismaClient } = require("@prisma/client");
 require("dotenv").config();
 const giftRoutes = require("./gift");
+const authMiddleware = require("./auth"); // Import the auth middleware
+const cors = require("cors");
 
 const prisma = new PrismaClient();
 const app = express();
