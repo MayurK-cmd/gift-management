@@ -1,13 +1,15 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 function Login() {
   const [email, setEmail] = useState("");
+  const navigate = useNavigate();
 
   const handleLogin = () => {
     if (email === "mayurgk2006@gmail.com") {
       const fakeToken = "your-hardcoded-jwt-token"; // Ideally from backend
       localStorage.setItem("token", fakeToken);
-      window.location.href = "/dashboard";
+      navigate("/dashboard")
     } else {
       alert("Unauthorized email");
     }
