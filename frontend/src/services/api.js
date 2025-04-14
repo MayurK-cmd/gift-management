@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const API = axios.create({
-  baseURL: "http://localhost:3000/api", // Your backend URL
+  baseURL: "https://gift-management.onrender.com/api", // Your backend URL
 });
 
 API.interceptors.request.use((config) => {
