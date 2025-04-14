@@ -9,6 +9,7 @@ const prisma = new PrismaClient();
 const app = express();
 
 app.use(express.json());
+app.use(cors()); // Enable CORS for all routes
 app.use("/api", giftRoutes);
 
 const PORT = process.env.PORT || 3000;
