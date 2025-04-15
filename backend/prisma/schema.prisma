@@ -15,12 +15,37 @@ datasource db {
 }
 
 
+model User {
+  id       Int    @id @default(autoincrement())
+  email    String @unique
+  fullname String
+  password String
+  gifts    Gift[] 
+  events   Event[]
+}
+
+model Event {
+  id          Int     @id @default(autoincrement())
+  name        String
+  description String?
+  createdAt   DateTime @default(now())
+  userId      Int
+  user        User     @relation(fields: [userId], references: [id])
+  gifts       Gift[]
+}
+
 model Gift {
   id          Int      @id @default(autoincrement())
   name        String?  
   description String?  
   type        String?  
   giftedBy    String?  
-  createdAt   DateTime? @default(now())
+  createdAt   DateTime @default(now())
+  userId      Int
+  user        User     @relation(fields: [userId], references: [id])
+  eventId     Int
+  event       Event    @relation(fields: [eventId], references: [id])
 }
+
+
 

@@ -1,24 +1,83 @@
+const express = require("express");
+const { PrismaClient } = require("@prisma/client");
+const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
+const dotenv = require("dotenv");
 
-const allowedEmail = "mayurgk2006@gmail.com";
+dotenv.config();
+const prisma = new PrismaClient();
+const router = express.Router();
+const JWT_SECRET = process.env.JWT_SECRET;
 
-function authMiddleware(req, res, next) {
-  const token = req.headers.authorization?.split(" ")[1];
-
-  if (!token) {
-    return res.status(401).json({ error: "Token missing" });
-  }
-
-  try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET); // Your JWT secret
-    if (decoded.email === allowedEmail) {
-      next();
-    } else {
-      res.status(403).json({ error: "Access denied" });
-    }
-  } catch (err) {
-    res.status(401).json({ error: "Invalid token" });
-  }
+if (!JWT_SECRET) {
+  console.warn("Warning: JWT_SECRET is not set in the environment variables!");
 }
 
-module.exports = authMiddleware;
+/**
+ * @swagger
+ * tags:
+ *   name: Auth
+ *   description: Authentication endpoints
+ */
+
+router.post("/signup", async (req, res) => {
+  const { email, fullname, password } = req.body;
+
+  if (!email || !fullname || !password) {
+    return res.status(400).json({ message: "Email, full name, and password are required" });
+  }
+
+  const existingUser = await prisma.user.findUnique({ where: { email } });
+
+  if (existingUser) {
+    return res.status(400).json({ message: "User with this email already exists" });
+  }
+
+  const hashedPassword = await bcrypt.hash(password, 10);
+
+  const user = await prisma.user.create({
+    data: { email, fullname, password: hashedPassword },
+  });
+
+  res.status(201).json({ message: "User created successfully", user: { email: user.email, fullname: user.fullname } });
+});
+
+router.post("/login", async (req, res) => {
+  const { email, password } = req.body;
+
+  const user = await prisma.user.findUnique({ where: { email } });
+  if (!user || !(await bcrypt.compare(password, user.password))) {
+    return res.status(400).json({ message: "Invalid credentials" });
+  }
+
+  const token = jwt.sign({ userId: user.id }, JWT_SECRET, { expiresIn: "1h" });
+  res.json({ message: "Login successful", token });
+});
+
+// Middleware for Authentication
+const authenticate = (req, res, next) => {
+  const authHeader = req.header("Authorization");
+  //console.log("Auth Header:", authHeader); // log it
+
+  if (!authHeader) {
+    return res.status(401).json({ message: "Access Denied. No token." });
+  }
+
+  const token = authHeader.replace("Bearer ", "");
+
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET);
+    req.user = decoded;
+    //console.log("Decoded Token:", decoded); // log it
+    next();
+  } catch (err) {
+    console.error("JWT error:", err.message);
+    res.status(401).json({ message: "Invalid Token" });
+  }
+};
+
+
+module.exports = {
+  router,
+  authenticate,
+};
