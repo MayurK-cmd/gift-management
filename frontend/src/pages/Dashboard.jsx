@@ -1,33 +1,36 @@
 import { useState, useEffect } from "react";
-import API from "../services/api";
-import GiftList from "../components/GiftList";
-import GiftModal from "../modals/GiftModal";
-import { toast } from "react-toastify";
+import { useNavigate } from "react-router-dom";
+import API from "../services/api";  // Make sure to import your API helper.
+import CreateEventModal from "../modals/CreateEventModal";
 
 function Dashboard() {
-  const [gifts, setGifts] = useState([]);
-  const [showGifts, setShowGifts] = useState(false);
+  const [events, setEvents] = useState([]);
   const [showModal, setShowModal] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
+  const token = localStorage.getItem("token");
 
-  const fetchGifts = async () => {
-    setLoading(true);
+  // Fetch events when the component mounts
+  useEffect(() => {
+    if (!token) {
+      navigate("/login");
+    } else {
+      fetchEvents();  // Fetch events after token check
+    }
+  }, [token]);
+
+  const fetchEvents = async () => {
     try {
-      const res = await API.get("/gifts");
-      const data = Array.isArray(res.data) ? res.data : [];
-      setGifts(data);
-      setShowGifts(true);
-    } catch (err) {
-      console.error("Failed to fetch gifts:", err);
-      toast.error("Failed to load gifts.");
-    } finally {
-      setLoading(false);
+      const response = await API.get("/events/getevent");  // Assuming /getevent returns the events
+      setEvents(response.data);  // Set events state
+    } catch (error) {
+      console.error("Error fetching events:", error);
     }
   };
 
-  useEffect(() => {
-    fetchGifts();
-  }, []);
+  const handleEventClick = (eventId) => {
+    navigate(`/dashboard/${eventId}`);
+  // Navigate to /dashboard/:eventId
+  };
 
   return (
     <div className="min-h-screen bg-black text-gray-100">
@@ -39,56 +42,50 @@ function Dashboard() {
             className="bg-gray-800 hover:bg-gray-700 px-4 py-2 rounded text-sm"
             onClick={() => setShowModal(true)}
           >
-            + Add Gift
-          </button>
-          <button
-            className="bg-gray-800 hover:bg-gray-700 px-4 py-2 rounded text-sm"
-            onClick={fetchGifts}
-          >
-            View All Gifts
+            Create Event
           </button>
         </div>
       </nav>
 
+      {/* Create Event Modal */}
+      <CreateEventModal show={showModal} onClose={() => setShowModal(false)} />
+
       {/* Main Content */}
       <main className="p-4 sm:p-6">
-        {/* Stats Section */}
-        <section className="mb-6 bg-gray-900 p-4 rounded-md shadow-md">
-          <h2 className="text-lg sm:text-xl font-semibold mb-4 text-white">Dashboard Overview</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div className="bg-gray-800 p-4 rounded-lg text-center">
-              <h3 className="text-base sm:text-lg text-white">Total Gifts</h3>
-              <p className="text-xl font-bold">{gifts.length}</p>
-            </div>
-            <div className="bg-gray-800 p-4 rounded-lg text-center">
-              <h3 className="text-base sm:text-lg text-white">Gifts Added This Month</h3>
-              <p className="text-xl font-bold">
-                {gifts.filter(gift => new Date(gift.createdAt).getMonth() === new Date().getMonth()).length}
-              </p>
-            </div>
-            <div className="bg-gray-800 p-4 rounded-lg text-center">
-              <h3 className="text-base sm:text-lg text-white">Gift Categories</h3>
-              <p className="text-xl font-bold">4</p>
-            </div>
-          </div>
-        </section>
+        <h2 className="text-2xl font-semibold text-white">Dashboard</h2>
 
-        {/* Loading Indicator */}
-        {loading ? (
-          <div className="flex justify-center items-center py-10">
-            <div className="animate-spin h-8 w-8 border-4 border-gray-500 border-t-transparent rounded-full"></div>
-          </div>
-        ) : (
-          showGifts && (
-            <GiftList gifts={gifts} onGiftUpdated={fetchGifts} />
-          )
-        )}
+        {/* Event Table */}
+        <div className="overflow-x-auto mt-4">
+          <table className="table-auto w-full text-left text-gray-300">
+            <thead className="bg-gray-800">
+              <tr>
+                <th className="px-4 py-2">Event Name</th>
+                <th className="px-4 py-2">Gifts Count</th>
+                <th className="px-4 py-2">Event ID</th>
+              </tr>
+            </thead>
+            <tbody>
+              {events.length > 0 ? (
+                events.map((eventItem) => (
+                  <tr
+                    key={eventItem.id}
+                    className="hover:bg-gray-700 cursor-pointer"
+                    onClick={() => handleEventClick(eventItem.id)}  // Pass eventItem.id for navigation
+                  >
+                    <td className="px-4 py-2">{eventItem.name}</td>
+                    <td className="px-4 py-2">{eventItem.gifts.length}</td>
+                    <td className="px-4 py-2">{eventItem.id}</td>  {/* Display event ID */}
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan="3" className="text-center px-4 py-2">No events found</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       </main>
-
-      {/* Modal for Adding Gifts */}
-      {showModal && (
-        <GiftModal onClose={() => setShowModal(false)} />
-      )}
     </div>
   );
 }

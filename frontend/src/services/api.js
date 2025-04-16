@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const API = axios.create({
-  baseURL: "https://gift-management.onrender.com/api", // Your backend URL
+  baseURL: "https://gift-management.onrender.com/api", // Corrected to HTTP
 });
 
 API.interceptors.request.use((config) => {
@@ -10,4 +10,19 @@ API.interceptors.request.use((config) => {
   return config;
 });
 
+export const createGift = (giftData) => {
+  return axiosInstance.post('/', giftData);
+};
+
+export const getGifts = (eventId) => {
+  return axiosInstance.get(`?eventId=${eventId}`);
+};
+
+export const updateGift = (id, giftData) => {
+  return axiosInstance.put(`/${id}`, giftData);
+};
+
+export const deleteGift = (id) => {
+  return axiosInstance.delete(`/${id}`);
+};
 export default API;

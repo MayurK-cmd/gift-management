@@ -5,16 +5,8 @@ const { authenticate } = require("./auth");
 
 const prisma = new PrismaClient();
 
-/**
- * @swagger
- * tags:
- *   name: Events
- *   description: Event management endpoints
- */
-
-router.use(authenticate); // ✅ Protect all routes
-
-router.post("/newevent", async (req, res) => {
+// --- Apply authenticate middleware here ---
+router.post("/newevent", authenticate, async (req, res) => {
   const { name } = req.body;
   const userId = req.user.userId;
 
@@ -27,11 +19,12 @@ router.post("/newevent", async (req, res) => {
     });
     res.status(201).json(event);
   } catch (err) {
+    console.error("Failed to create event:", err);
     res.status(500).json({ error: "Failed to create event" });
   }
 });
 
-router.get("/getevent", async (req, res) => {
+router.get("/getevent", authenticate, async (req, res) => {
   const userId = req.user.userId;
 
   try {
@@ -41,6 +34,7 @@ router.get("/getevent", async (req, res) => {
     });
     res.json(events);
   } catch (err) {
+    console.error("Failed to fetch events:", err);
     res.status(500).json({ error: "Failed to fetch events" });
   }
 });

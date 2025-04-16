@@ -14,6 +14,69 @@ const prisma = new PrismaClient();
 
 router.use(authenticate); // ✅ Apply middleware here
 
+/**
+ * @swagger
+ * path:
+ *  /api/gifts:
+ *    post:
+ *      summary: Create a new gift
+ *      tags: [Gifts]
+ *      security:
+ *        - BearerAuth: []  # Authentication required
+ *      requestBody:
+ *        description: Details of the gift to be created
+ *        required: true
+ *        content:
+ *          application/json:
+ *            schema:
+ *              type: object
+ *              properties:
+ *                name:
+ *                  type: string
+ *                  example: "Gift Card"
+ *                description:
+ *                  type: string
+ *                  example: "A $50 gift card for the store"
+ *                type:
+ *                  type: string
+ *                  example: "Physical"
+ *                giftedBy:
+ *                  type: string
+ *                  example: "John Doe"
+ *                eventId:
+ *                  type: integer
+ *                  example: 1
+ *      responses:
+ *        201:
+ *          description: Gift created successfully
+ *          content:
+ *            application/json:
+ *              schema:
+ *                type: object
+ *                properties:
+ *                  id:
+ *                    type: integer
+ *                    example: 1
+ *                  name:
+ *                    type: string
+ *                    example: "Gift Card"
+ *                  description:
+ *                    type: string
+ *                    example: "A $50 gift card for the store"
+ *                  type:
+ *                    type: string
+ *                    example: "Physical"
+ *                  giftedBy:
+ *                    type: string
+ *                    example: "John Doe"
+ *                  eventId:
+ *                    type: integer
+ *                    example: 1
+ *        403:
+ *          description: Invalid event or not owned by the user
+ *        500:
+ *          description: Failed to create gift
+ */
 router.post("/gifts", async (req, res) => {
   const { name, description, type, giftedBy, eventId } = req.body;
   const userId = req.user.userId;
@@ -44,7 +107,58 @@ router.post("/gifts", async (req, res) => {
   }
 });
 
-// GET /api/gifts
+/**
+ * @swagger
+ * path:
+ *  /api/gifts:
+ *    get:
+ *      summary: Get all gifts for a specific event
+ *      tags: [Gifts]
+ *      security:
+ *        - BearerAuth: []  # Authentication required
+ *      parameters:
+ *        - in: query
+ *          name: eventId
+ *          required: true
+ *          description: The ID of the event to fetch gifts for
+ *          schema:
+ *            type: integer
+ *            example: 1
+ *      responses:
+ *        200:
+ *          description: List of gifts for the given eventId
+ *          content:
+ *            application/json:
+ *              schema:
+ *                type: array
+ *                items:
+ *                  type: object
+ *                  properties:
+ *                    id:
+ *                      type: integer
+ *                      example: 1
+ *                    name:
+ *                      type: string
+ *                      example: "Gift Card"
+ *                    description:
+ *                      type: string
+ *                      example: "A $50 gift card for the store"
+ *                    type:
+ *                      type: string
+ *                      example: "Physical"
+ *                    giftedBy:
+ *                      type: string
+ *                      example: "John Doe"
+ *                    eventId:
+ *                      type: integer
+ *                      example: 1
+ *        400:
+ *          description: Missing eventId query parameter
+ *        404:
+ *          description: No gifts found for the given eventId
+ *        500:
+ *          description: Failed to fetch gifts
+ */
 router.get("/gifts", async (req, res) => {
   const userId = req.user.userId; // Get the logged-in user's ID
   const { eventId } = req.query;  // Get the eventId from the query string
@@ -54,7 +168,6 @@ router.get("/gifts", async (req, res) => {
   }
 
   try {
-    // If eventId is provided, filter gifts by that event
     const gifts = await prisma.gift.findMany({
       where: {
         userId,
@@ -76,8 +189,77 @@ router.get("/gifts", async (req, res) => {
   }
 });
 
-
-
+/**
+ * @swagger
+ * path:
+ *  /api/gifts/{id}:
+ *    put:
+ *      summary: Update a gift's details
+ *      tags: [Gifts]
+ *      security:
+ *        - BearerAuth: []  # Authentication required
+ *      parameters:
+ *        - in: path
+ *          name: id
+ *          required: true
+ *          description: ID of the gift to update
+ *          schema:
+ *            type: integer
+ *            example: 1
+ *      requestBody:
+ *        description: The updated gift details
+ *        required: true
+ *        content:
+ *          application/json:
+ *            schema:
+ *              type: object
+ *              properties:
+ *                name:
+ *                  type: string
+ *                  example: "Updated Gift Card"
+ *                description:
+ *                  type: string
+ *                  example: "A $100 gift card for the store"
+ *                type:
+ *                  type: string
+ *                  example: "Virtual"
+ *                giftedBy:
+ *                  type: string
+ *                  example: "Jane Doe"
+ *                isReceived:
+ *                  type: boolean
+ *                  example: true
+ *      responses:
+ *        200:
+ *          description: Gift updated successfully
+ *          content:
+ *            application/json:
+ *              schema:
+ *                type: object
+ *                properties:
+ *                  id:
+ *                    type: integer
+ *                    example: 1
+ *                  name:
+ *                    type: string
+ *                    example: "Updated Gift Card"
+ *                  description:
+ *                    type: string
+ *                    example: "A $100 gift card for the store"
+ *                  type:
+ *                    type: string
+ *                    example: "Virtual"
+ *                  giftedBy:
+ *                    type: string
+ *                    example: "Jane Doe"
+ *                  isReceived:
+ *                    type: boolean
+ *                    example: true
+ *        403:
+ *          description: Gift not found or not owned by user
+ *        500:
+ *          description: Failed to update gift
+ */
 router.put("/gifts/:id", async (req, res) => {
   const { id } = req.params;
   const { name, description, type, giftedBy, isReceived } = req.body;
@@ -103,6 +285,31 @@ router.put("/gifts/:id", async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * path:
+ *  /api/gifts/{id}:
+ *    delete:
+ *      summary: Delete a gift
+ *      tags: [Gifts]
+ *      security:
+ *        - BearerAuth: []  # Authentication required
+ *      parameters:
+ *        - in: path
+ *          name: id
+ *          required: true
+ *          description: ID of the gift to delete
+ *          schema:
+ *            type: integer
+ *            example: 1
+ *      responses:
+ *        200:
+ *          description: Gift deleted successfully
+ *        403:
+ *          description: Gift not found or not owned by user
+ *        500:
+ *          description: Failed to delete gift
+ */
 router.delete("/gifts/:id", async (req, res) => {
   const { id } = req.params;
   const userId = req.user.userId;

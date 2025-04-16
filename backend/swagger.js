@@ -16,7 +16,7 @@ const options = {
       },
     ],
   },
-  apis: ["./auth.js", "./events.js ", "./gift.js"], // path to your route files
+  apis: ["./auth.js", "./events.js", "./gift.js"], // Fixed extra space in events.js
 };
 
 const specs = swaggerJsDoc(options);

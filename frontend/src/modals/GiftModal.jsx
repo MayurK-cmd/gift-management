@@ -1,8 +1,6 @@
 import { useState, useEffect } from "react";
-import API from "../services/api";
-import { toast } from "react-toastify";
 
-function GiftModal({ gift, onClose, onGiftUpdated }) {
+function GiftModal({ show, onClose, onSubmit, gift }) {
   const [form, setForm] = useState({
     name: "",
     description: "",
@@ -18,25 +16,16 @@ function GiftModal({ gift, onClose, onGiftUpdated }) {
         type: gift.type || "",
         giftedBy: gift.giftedBy || "",
       });
+    } else {
+      setForm({ name: "", description: "", type: "", giftedBy: "" });
     }
   }, [gift]);
 
-  const handleSubmit = async () => {
-    try {
-      if (gift) {
-        await API.put(`/gifts/${gift.id}`, form);
-        toast.success("Gift updated successfully!");
-      } else {
-        await API.post("/gifts", form);
-        toast.success("Gift added successfully!");
-      }
-      onGiftUpdated();
-      onClose();
-    } catch (err) {
-      console.error(err);
-      toast.error("Failed to save gift.");
-    }
+  const handleSubmit = () => {
+    onSubmit(form);
   };
+
+  if (!show) return null;
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
