@@ -1,95 +1,45 @@
 const express = require("express");
 const router = express.Router();
 const { PrismaClient } = require("@prisma/client");
-const { authenticate } = require("./auth"); // ✅ Use shared auth middleware
+const { authenticate } = require("./auth");
 
 const prisma = new PrismaClient();
 
-/**
- * @swagger
- * tags:
- *   name: Gifts
- *   description: Gift management endpoints
- */
-
-router.use(authenticate); // ✅ Apply middleware here
+router.use(authenticate);
 
 /**
- * @swagger
- * path:
- *  /api/gifts:
- *    post:
- *      summary: Create a new gift
- *      tags: [Gifts]
- *      security:
- *        - BearerAuth: []  # Authentication required
- *      requestBody:
- *        description: Details of the gift to be created
- *        required: true
- *        content:
- *          application/json:
- *            schema:
- *              type: object
- *              properties:
- *                name:
- *                  type: string
- *                  example: "Gift Card"
- *                description:
- *                  type: string
- *                  example: "A $50 gift card for the store"
- *                type:
- *                  type: string
- *                  example: "Physical"
- *                giftedBy:
- *                  type: string
- *                  example: "John Doe"
- *                eventId:
- *                  type: integer
- *                  example: 1
- *      responses:
- *        201:
- *          description: Gift created successfully
- *          content:
- *            application/json:
- *              schema:
- *                type: object
- *                properties:
- *                  id:
- *                    type: integer
- *                    example: 1
- *                  name:
- *                    type: string
- *                    example: "Gift Card"
- *                  description:
- *                    type: string
- *                    example: "A $50 gift card for the store"
- *                  type:
- *                    type: string
- *                    example: "Physical"
- *                  giftedBy:
- *                    type: string
- *                    example: "John Doe"
- *                  eventId:
- *                    type: integer
- *                    example: 1
- *        403:
- *          description: Invalid event or not owned by the user
- *        500:
- *          description: Failed to create gift
+ * POST /api/gifts - Create a new gift
+ * Allow any user who is part of the event to create a gift
  */
 router.post("/gifts", async (req, res) => {
   const { name, description, type, giftedBy, eventId } = req.body;
   const userId = req.user.userId;
 
   try {
-    const event = await prisma.event.findFirst({
-      where: { id: eventId, userId },
+    // Check if the event exists
+    const event = await prisma.event.findUnique({
+      where: { id: eventId },
     });
 
     if (!event) {
-      return res.status(403).json({ error: "Invalid event or not owned by user" });
+      return res.status(404).json({ error: "Event not found" });
     }
 
+    // Check if the user is part of the event (access validation)
+    const membership = await prisma.eventUser.findUnique({
+      where: {
+        userId_eventId: {
+          userId,
+          eventId,
+        },
+      },
+    });
+
+    if (!membership) {
+      return res.status(403).json({ error: "You do not have access to this event" });
+    }
+
+    // Create the new gift
     const gift = await prisma.gift.create({
       data: {
         name,
@@ -103,82 +53,49 @@ router.post("/gifts", async (req, res) => {
 
     res.status(201).json(gift);
   } catch (err) {
+    console.error(err);
     res.status(500).json({ error: "Failed to create gift" });
   }
 });
 
 /**
- * @swagger
- * path:
- *  /api/gifts:
- *    get:
- *      summary: Get all gifts for a specific event
- *      tags: [Gifts]
- *      security:
- *        - BearerAuth: []  # Authentication required
- *      parameters:
- *        - in: query
- *          name: eventId
- *          required: true
- *          description: The ID of the event to fetch gifts for
- *          schema:
- *            type: integer
- *            example: 1
- *      responses:
- *        200:
- *          description: List of gifts for the given eventId
- *          content:
- *            application/json:
- *              schema:
- *                type: array
- *                items:
- *                  type: object
- *                  properties:
- *                    id:
- *                      type: integer
- *                      example: 1
- *                    name:
- *                      type: string
- *                      example: "Gift Card"
- *                    description:
- *                      type: string
- *                      example: "A $50 gift card for the store"
- *                    type:
- *                      type: string
- *                      example: "Physical"
- *                    giftedBy:
- *                      type: string
- *                      example: "John Doe"
- *                    eventId:
- *                      type: integer
- *                      example: 1
- *        400:
- *          description: Missing eventId query parameter
- *        404:
- *          description: No gifts found for the given eventId
- *        500:
- *          description: Failed to fetch gifts
+ * GET /api/gifts - Get all gifts for a specific event
+ * Allow any user who has access to the event to view gifts
  */
 router.get("/gifts", async (req, res) => {
-  const userId = req.user.userId; // Get the logged-in user's ID
-  const { eventId } = req.query;  // Get the eventId from the query string
+  const userId = req.user.userId;
+  const { eventId } = req.query;
 
   if (!eventId) {
     return res.status(400).json({ message: "Please provide an eventId" });
   }
 
   try {
-    const gifts = await prisma.gift.findMany({
+    // Check if the user has access to the event
+    const membership = await prisma.eventUser.findUnique({
       where: {
-        userId,
-        eventId: Number(eventId),  // Ensure the eventId is converted to a number
-      },
-      include: {
-        event: true,  // Include event details with the gift
+        userId_eventId: {
+          userId,
+          eventId: Number(eventId),
+        },
       },
     });
 
-    if (!gifts || gifts.length === 0) {
+    if (!membership) {
+      return res.status(403).json({ error: "You do not have access to this event" });
+    }
+
+    // Fetch gifts for the event, regardless of user (shared gifts included)
+    const gifts = await prisma.gift.findMany({
+      where: {
+        eventId: Number(eventId),
+      },
+      include: {
+        user: true,  // Optionally include user info for each gift
+      },
+    });
+
+    if (!gifts.length) {
       return res.status(404).json({ message: "No gifts found for the given eventId" });
     }
 
@@ -190,75 +107,9 @@ router.get("/gifts", async (req, res) => {
 });
 
 /**
- * @swagger
- * path:
- *  /api/gifts/{id}:
- *    put:
- *      summary: Update a gift's details
- *      tags: [Gifts]
- *      security:
- *        - BearerAuth: []  # Authentication required
- *      parameters:
- *        - in: path
- *          name: id
- *          required: true
- *          description: ID of the gift to update
- *          schema:
- *            type: integer
- *            example: 1
- *      requestBody:
- *        description: The updated gift details
- *        required: true
- *        content:
- *          application/json:
- *            schema:
- *              type: object
- *              properties:
- *                name:
- *                  type: string
- *                  example: "Updated Gift Card"
- *                description:
- *                  type: string
- *                  example: "A $100 gift card for the store"
- *                type:
- *                  type: string
- *                  example: "Virtual"
- *                giftedBy:
- *                  type: string
- *                  example: "Jane Doe"
- *                isReceived:
- *                  type: boolean
- *                  example: true
- *      responses:
- *        200:
- *          description: Gift updated successfully
- *          content:
- *            application/json:
- *              schema:
- *                type: object
- *                properties:
- *                  id:
- *                    type: integer
- *                    example: 1
- *                  name:
- *                    type: string
- *                    example: "Updated Gift Card"
- *                  description:
- *                    type: string
- *                    example: "A $100 gift card for the store"
- *                  type:
- *                    type: string
- *                    example: "Virtual"
- *                  giftedBy:
- *                    type: string
- *                    example: "Jane Doe"
- *                  isReceived:
- *                    type: boolean
- *                    example: true
- *        403:
- *          description: Gift not found or not owned by user
- *        500:
- *          description: Failed to update gift
+ * PUT /api/gifts/:id - Update a gift's details
+ * Allow any user with access to the event to update the gift
+ * We will allow users to update any gift in the event for now, but you can restrict it to their own gifts if needed.
  */
 router.put("/gifts/:id", async (req, res) => {
   const { id } = req.params;
@@ -270,45 +121,40 @@ router.put("/gifts/:id", async (req, res) => {
       where: { id: Number(id) },
     });
 
-    if (!gift || gift.userId !== userId) {
-      return res.status(403).json({ error: "Gift not found or not owned by you" });
+    if (!gift) {
+      return res.status(404).json({ error: "Gift not found" });
     }
 
-    const updated = await prisma.gift.update({
+    // Check if the user is part of the event
+    const membership = await prisma.eventUser.findUnique({
+      where: {
+        userId_eventId: {
+          userId,
+          eventId: gift.eventId,
+        },
+      },
+    });
+
+    if (!membership) {
+      return res.status(403).json({ error: "You do not have access to this event" });
+    }
+
+    const updatedGift = await prisma.gift.update({
       where: { id: Number(id) },
       data: { name, description, type, giftedBy, isReceived },
     });
 
-    res.json(updated);
-  } catch {
+    res.json(updatedGift);
+  } catch (err) {
+    console.error(err);
     res.status(500).json({ error: "Failed to update gift" });
   }
 });
 
 /**
- * @swagger
- * path:
- *  /api/gifts/{id}:
- *    delete:
- *      summary: Delete a gift
- *      tags: [Gifts]
- *      security:
- *        - BearerAuth: []  # Authentication required
- *      parameters:
- *        - in: path
- *          name: id
- *          required: true
- *          description: ID of the gift to delete
- *          schema:
- *            type: integer
- *            example: 1
- *      responses:
- *        200:
- *          description: Gift deleted successfully
- *        403:
- *          description: Gift not found or not owned by user
- *        500:
- *          description: Failed to delete gift
+ * DELETE /api/gifts/:id - Delete a gift
+ * Allow any user with access to the event to delete a gift
+ * You can restrict this to the gift creator or allow any user with event access.
  */
 router.delete("/gifts/:id", async (req, res) => {
   const { id } = req.params;
@@ -319,13 +165,28 @@ router.delete("/gifts/:id", async (req, res) => {
       where: { id: Number(id) },
     });
 
-    if (!gift || gift.userId !== userId) {
-      return res.status(403).json({ error: "Gift not found or not owned by you" });
+    if (!gift) {
+      return res.status(404).json({ error: "Gift not found" });
+    }
+
+    // Check if the user is part of the event
+    const membership = await prisma.eventUser.findUnique({
+      where: {
+        userId_eventId: {
+          userId,
+          eventId: gift.eventId,
+        },
+      },
+    });
+
+    if (!membership) {
+      return res.status(403).json({ error: "You do not have access to this event" });
     }
 
     await prisma.gift.delete({ where: { id: Number(id) } });
     res.json({ message: "Gift deleted" });
-  } catch {
+  } catch (err) {
+    console.error(err);
     res.status(500).json({ error: "Failed to delete gift" });
   }
 });

@@ -6,7 +6,6 @@
 
 generator client {
   provider = "prisma-client-js"
-  
 }
 
 datasource db {
@@ -14,24 +13,25 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-
 model User {
-  id       Int    @id @default(autoincrement())
-  email    String @unique
+  id       Int     @id @default(autoincrement())
+  email    String  @unique
   fullname String
   password String
   gifts    Gift[] 
   events   Event[]
+  eventAccess EventUser[]
 }
 
 model Event {
-  id          Int     @id @default(autoincrement())
+  id          Int       @id @default(autoincrement())
   name        String
   description String?
-  createdAt   DateTime @default(now())
+  createdAt   DateTime  @default(now())
   userId      Int
-  user        User     @relation(fields: [userId], references: [id])
+  user        User      @relation(fields: [userId], references: [id])
   gifts       Gift[]
+  sharedWith  EventUser[]
 }
 
 model Gift {
@@ -47,5 +47,11 @@ model Gift {
   event       Event    @relation(fields: [eventId], references: [id])
 }
 
+model EventUser {
+  userId  Int
+  eventId Int
+  user    User  @relation(fields: [userId], references: [id])
+  event   Event @relation(fields: [eventId], references: [id])
 
-
+  @@id([userId, eventId])
+}

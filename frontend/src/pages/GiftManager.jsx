@@ -4,6 +4,7 @@ import API from "../services/api";
 import GiftModal from "../modals/GiftModal";
 import UpdateGiftModal from "../modals/UpdateGiftModal";
 import DeleteConfirmModal from "../modals/DeleteConfirmModal";
+import ShareEventModal from "../modals/ShareEventModal"; // Import ShareEventModal
 
 function GiftManager() {
   const { eventId } = useParams();
@@ -14,6 +15,7 @@ function GiftManager() {
   const [showForm, setShowForm] = useState(false);
   const [editingGift, setEditingGift] = useState(null);
   const [deletingGiftId, setDeletingGiftId] = useState(null);
+  const [showShareModal, setShowShareModal] = useState(false); // State for controlling ShareEvent modal
 
   const fetchGifts = async () => {
     try {
@@ -51,25 +53,40 @@ function GiftManager() {
   };
 
   return (
-    <div className="min-h-screen bg-black text-white">
+    <div className="min-h-screen bg-white text-gray-800">
       {/* Navbar */}
-      <nav className="bg-gray-900 p-4 flex justify-between items-center">
-        <h1 className="text-xl font-bold">🎁 Gifts for Event #{eventId}</h1>
+      <nav className="bg-white p-4 flex justify-between items-center shadow-md">
+        <h1 className="text-xl font-bold text-gray-900">🎁 Gifts for Event #{eventId}</h1>
         <div className="flex gap-2">
           <button
             onClick={() => setShowForm(true)}
-            className="bg-blue-600 hover:bg-blue-500 px-4 py-2 rounded text-sm"
+            className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded text-sm"
           >
             ➕ Add Gift
           </button>
           <button
             onClick={() => navigate("/dashboard")}
-            className="bg-gray-700 hover:bg-gray-600 px-4 py-2 rounded text-sm"
+            className="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded text-sm"
           >
             🔙 Go Back
           </button>
+          {/* Share Event Button */}
+          <button
+            onClick={() => setShowShareModal(true)} // Trigger the ShareEvent modal
+            className="bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded text-sm"
+          >
+            Share Event
+          </button>
         </div>
       </nav>
+
+      {/* Share Event Modal */}
+      {showShareModal && (
+        <ShareEventModal
+          eventId={numericEventId}
+          onClose={() => setShowShareModal(false)} // Close the modal
+        />
+      )}
 
       {/* Add Gift Modal */}
       {showForm && (
@@ -82,7 +99,7 @@ function GiftManager() {
               setShowForm(false);
               fetchGifts();
             } catch (err) {
-              console.error("Failed to add gift:", err);
+              console.error("Error adding gift:", err);
             }
           }}
         />
@@ -91,74 +108,74 @@ function GiftManager() {
       {/* Update Gift Modal */}
       {editingGift && (
         <UpdateGiftModal
-          show={!!editingGift}
-          onClose={() => setEditingGift(null)}
           gift={editingGift}
+          onClose={() => setEditingGift(null)}
           onSubmit={async (formData) => {
             try {
               await API.put(`/gifts/${editingGift.id}`, formData);
               setEditingGift(null);
               fetchGifts();
             } catch (err) {
-              console.error("Update failed:", err);
+              console.error("Error updating gift:", err);
             }
           }}
         />
       )}
 
       {/* Delete Confirmation Modal */}
-      {deletingGiftId !== null && (
+      {deletingGiftId && (
         <DeleteConfirmModal
-          show={!!deletingGiftId}
           onCancel={() => setDeletingGiftId(null)}
           onConfirm={confirmDeleteGift}
         />
       )}
 
-      {/* Gifts Table */}
-      <main className="p-4">
-        <h2 className="text-xl font-semibold mb-4">Gift List</h2>
-        {gifts.length > 0 ? (
-          <div className="overflow-x-auto">
-            <table className="table-auto w-full text-left border border-gray-700 text-gray-300">
-              <thead className="bg-gray-800 border-b border-gray-600">
-                <tr>
-                  <th className="px-4 py-2 border-r border-gray-700">Name</th>
-                  <th className="px-4 py-2 border-r border-gray-700">Description</th>
-                  <th className="px-4 py-2 border-r border-gray-700">Type</th>
-                  <th className="px-4 py-2 border-r border-gray-700">Gifted By</th>
-                  <th className="px-4 py-2">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {gifts.map((g) => (
-                  <tr key={g.id} className="hover:bg-gray-700 border-t border-gray-700">
-                    <td className="px-4 py-2 border-r border-gray-700">{g.name}</td>
-                    <td className="px-4 py-2 border-r border-gray-700">{g.description}</td>
-                    <td className="px-4 py-2 border-r border-gray-700">{g.type}</td>
-                    <td className="px-4 py-2 border-r border-gray-700">{g.giftedBy}</td>
+      {/* Gift List */}
+      <main className="p-4 sm:p-6">
+        <h2 className="text-2xl font-semibold text-gray-900">Gifts</h2>
+        <div className="overflow-x-auto mt-4">
+          <table className="table-auto w-full text-left text-gray-700">
+            <thead className="bg-gray-200">
+              <tr>
+                <th className="px-4 py-2">Gift Name</th>
+                <th className="px-4 py-2">Description</th>
+                <th className="px-4 py-2">Type</th>
+                <th className="px-4 py-2">Gifted By</th>
+                <th className="px-4 py-2">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {gifts.length > 0 ? (
+                gifts.map((gift) => (
+                  <tr key={gift.id} className="hover:bg-gray-100">
+                    <td className="px-4 py-2">{gift.name}</td>
+                    <td className="px-4 py-2">{gift.description}</td>
+                    <td className="px-4 py-2">{gift.type}</td>
+                    <td className="px-4 py-2">{gift.giftedBy}</td>
                     <td className="px-4 py-2 flex gap-2">
                       <button
-                        onClick={() => handleEditGift(g)}
-                        className="bg-yellow-500 hover:bg-yellow-600 text-black px-3 py-1 rounded text-sm"
+                        onClick={() => handleEditGift(gift)}
+                        className="bg-yellow-500 hover:bg-yellow-400 text-white px-4 py-2 rounded text-sm"
                       >
-                        Update
+                        ✏️ Edit
                       </button>
                       <button
-                        onClick={() => handleDeleteGift(g.id)}
-                        className="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-sm"
+                        onClick={() => handleDeleteGift(gift.id)}
+                        className="bg-red-600 hover:bg-red-500 text-white px-4 py-2 rounded text-sm"
                       >
-                        Delete
+                        🗑️ Delete
                       </button>
                     </td>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        ) : (
-          <p className="text-gray-400">No gifts found for this event.</p>
-        )}
+                ))
+              ) : (
+                <tr>
+                  <td colSpan="5" className="text-center px-4 py-2 text-gray-600">No gifts added yet</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       </main>
     </div>
   );

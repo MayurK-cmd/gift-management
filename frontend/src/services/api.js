@@ -1,7 +1,8 @@
 import axios from "axios";
 
 const API = axios.create({
-  baseURL: "https://gift-management.onrender.com/api", // Corrected to HTTP
+  //baseURL: "https://gift-management.onrender.com/api",
+  baseURL: "http://localhost:3000/api", // Corrected to HTTP
 });
 
 API.interceptors.request.use((config) => {

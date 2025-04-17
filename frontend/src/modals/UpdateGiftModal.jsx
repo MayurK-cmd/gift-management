@@ -35,42 +35,42 @@ function UpdateGiftModal({ show, onClose, gift, onSubmit }) {
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-gray-800 p-6 rounded w-full max-w-md">
-        <h2 className="text-xl font-semibold mb-4 text-white">Update Gift</h2>
+      <div className="bg-white p-6 rounded w-full max-w-md">
+        <h2 className="text-xl font-semibold mb-4 text-gray-900">Update Gift</h2>
         <form onSubmit={handleSubmit} className="space-y-4">
           <input
             name="name"
             value={formData.name}
             onChange={handleChange}
             placeholder="Gift Name"
-            className="w-full px-4 py-2 rounded bg-gray-700 text-white"
+            className="w-full px-4 py-2 rounded bg-gray-100 text-gray-900"
           />
           <textarea
             name="description"
             value={formData.description}
             onChange={handleChange}
             placeholder="Description"
-            className="w-full px-4 py-2 rounded bg-gray-700 text-white"
+            className="w-full px-4 py-2 rounded bg-gray-100 text-gray-900"
           />
           <input
             name="type"
             value={formData.type}
             onChange={handleChange}
             placeholder="Type"
-            className="w-full px-4 py-2 rounded bg-gray-700 text-white"
+            className="w-full px-4 py-2 rounded bg-gray-100 text-gray-900"
           />
           <input
             name="giftedBy"
             value={formData.giftedBy}
             onChange={handleChange}
             placeholder="Gifted By"
-            className="w-full px-4 py-2 rounded bg-gray-700 text-white"
+            className="w-full px-4 py-2 rounded bg-gray-100 text-gray-900"
           />
           <div className="flex justify-end gap-2">
             <button
               type="button"
               onClick={onClose}
-              className="bg-gray-600 hover:bg-gray-500 px-4 py-2 rounded text-sm"
+              className="bg-gray-300 hover:bg-gray-400 px-4 py-2 rounded text-sm"
             >
               Cancel
             </button>
