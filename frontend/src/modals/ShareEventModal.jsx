@@ -7,7 +7,7 @@ function ShareEventModal({ eventId, onClose }) {
 
   const handleShareEvent = async () => {
     try {
-      const res = await API.post("/shareevent", { eventId, email });
+      const res = await API.post("/events/shareevent", { eventId, email });
       if (res.status === 200) {
         onClose(); // Close the modal on successful share
       }
