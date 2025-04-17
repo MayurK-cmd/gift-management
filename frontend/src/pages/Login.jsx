@@ -59,9 +59,7 @@ const Login = () => {
 
   return (
     <div className="flex h-screen relative">
-      <div className="absolute top-4 right-6 text-xl font-bold text-black-600">
-        app name here
-      </div>
+      
 
       <div className="w-full lg:w-1/2 flex flex-col justify-center items-center px-6">
         <div className="w-full max-w-md bg-white p-8 rounded-lg shadow-lg">
