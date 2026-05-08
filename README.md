@@ -1,4 +1,4 @@
-# Gift Management System
+# Occasio
 
 A full-stack web application for managing gifts and events. Users can create events, share them with others, and track gifts for each event.
 
